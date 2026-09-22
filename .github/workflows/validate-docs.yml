@@ -1,0 +1,74 @@
+name: Validate Repository Structure
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Check that the docs folder exists
+        run: |
+          if [ ! -d "docs" ]; then
+            echo "FAILED: the docs folder is missing."
+            exit 1
+          fi
+          echo "PASSED: the docs folder was found."
+
+      - name: Check that the ERD is in the docs folder
+        run: |
+          if ls docs/*.png >/dev/null 2>&1 || ls docs/*.pdf >/dev/null 2>&1; then
+            echo "PASSED: the ERD image was found."
+          else
+            echo "FAILED: no .png or .pdf ERD in the docs folder."
+            exit 1
+          fi
+
+      - name: Check that the API endpoint plan is in the docs folder
+        run: |
+          if [ -f "docs/API_Endpoint_Plan.md" ]; then
+            echo "PASSED: the API endpoint plan was found."
+          else
+            echo "FAILED: docs/API_Endpoint_Plan.md is missing."
+            exit 1
+          fi
+
+      - name: Check that the SQL script is in the docs folder
+        run: |
+          if ls docs/*.sql >/dev/null 2>&1; then
+            echo "PASSED: the SQL script was found."
+          else
+            echo "FAILED: no .sql script in the docs folder."
+            exit 1
+          fi
+
+      - name: Check that the SQL script has the six tables
+        run: |
+          for TABLE in Roles Users Events Categories Enrolments Results; do
+            if grep -q "CREATE TABLE $TABLE" docs/*.sql; then
+              echo "PASSED: table $TABLE is in the script."
+            else
+              echo "FAILED: table $TABLE is missing from the script."
+              exit 1
+            fi
+          done
+
+      - name: Check that the README is not empty
+        run: |
+          if [ -s "README.md" ]; then
+            echo "PASSED: the README has content."
+          else
+            echo "FAILED: the README is missing or empty."
+            exit 1
+          fi
+
+      - name: All checks done
+        run: echo "All repository structure checks passed."
