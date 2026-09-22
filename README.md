@@ -89,3 +89,7 @@ The workflow file is **.github/workflows/validate-docs.yml**. It runs on every p
 **CI/CD Note**
 
 The validate-docs.yml GitHub Actions workflow runs successfully and produces a green check, confirmed on a personal public mirror of this repository at [github.com/LiyemaMncora/personal-prog6212-2026-g1-poe-liyemamncora](https://github.com/LiyemaMncora/personal-prog6212-2026-g1-poe-liyemamncora). On the official submission repository (under the EMECPE GitHub organisation), the same workflow currently fails to start with the message: _"The job was not started because recent account payments have failed or your spending limit needs to be increased."_ This is a billing/Actions-minutes restriction on the organisation's account, unrelated to the repository content or workflow configuration itself.
+
+## 7. Video presentation
+
+YouTube: https://youtu.be/kXcVMdF6RlQ 
