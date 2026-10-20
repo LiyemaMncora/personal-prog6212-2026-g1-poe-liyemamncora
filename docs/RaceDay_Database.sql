@@ -33,6 +33,7 @@ CREATE TABLE Users (
     passwordHash    NVARCHAR(255) NOT NULL,
     phoneNumber     NVARCHAR(20) NULL,
     dateOfBirth     DATE NULL,
+    profilePictureUrl NVARCHAR(500) NULL,
     createdAt       DATETIME2 NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT UQ_Users_email UNIQUE (email),
@@ -49,12 +50,15 @@ CREATE TABLE Events (
     location        NVARCHAR(150) NOT NULL,
     province        NVARCHAR(100) NOT NULL,
     eventType       NVARCHAR(20) NOT NULL,
+    distanceKM      DECIMAL(6,2) NOT NULL,
     latitude        DECIMAL(9,6) NULL,
     longitude       DECIMAL(9,6) NULL,
+    bannerImageUrl  NVARCHAR(500) NULL,
     createdAt       DATETIME2 NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT FK_Events_Organiser FOREIGN KEY (organiserID) REFERENCES Users(userID),
-    CONSTRAINT CK_Events_eventType CHECK (eventType IN ('Running', 'Walking', 'Cycling'))
+    CONSTRAINT CK_Events_eventType CHECK (eventType IN ('Running', 'Walking', 'Cycling')),
+    CONSTRAINT CK_Events_distanceKM CHECK (distanceKM > 0)
 );
 GO
 
@@ -77,12 +81,14 @@ GO
 
 CREATE TABLE Enrolments (
     enrolmentID     INT IDENTITY(1,1) PRIMARY KEY,
+    eventID         INT NOT NULL,
     categoryID      INT NOT NULL,
     participantID   INT NOT NULL,
     raceNumber      NVARCHAR(10) NOT NULL,
     status          NVARCHAR(20) NOT NULL DEFAULT 'Confirmed',
     enrolledAt      DATETIME2 NOT NULL DEFAULT GETDATE(),
 
+    CONSTRAINT FK_Enrolments_Event FOREIGN KEY (eventID) REFERENCES Events(eventID),
     CONSTRAINT FK_Enrolments_Category FOREIGN KEY (categoryID) REFERENCES Categories(categoryID) ON DELETE CASCADE,
     CONSTRAINT FK_Enrolments_Participant FOREIGN KEY (participantID) REFERENCES Users(userID),
     CONSTRAINT UQ_Enrolments_raceNumber UNIQUE (raceNumber),
@@ -119,18 +125,18 @@ INSERT INTO Users (roleID, firstName, lastName, email, passwordHash, phoneNumber
 (2, N'Lerato',  N'Dlamini', N'lerato.dlamini@gmail.com',     N'HASH_Participant03', N'0766667777', '2000-01-18');
 GO
 
-INSERT INTO Events (organiserID, name, description, eventDate, location, province, eventType, latitude, longitude) VALUES
+INSERT INTO Events (organiserID, name, description, eventDate, location, province, eventType, distanceKM, latitude, longitude) VALUES
 (1, N'Durban Beachfront 10km Challenge',
     N'A flat and fast race along the Golden Mile promenade. The race starts at uShaka Marine World.',
-    '2026-08-16 06:00:00', N'Durban', N'KwaZulu-Natal', N'Running', -29.867300, 31.045400),
+    '2026-08-16 06:00:00', N'Durban', N'KwaZulu-Natal', N'Running', 10.00, -29.867300, 31.045400),
 
 (1, N'Pietermaritzburg Hill Half Marathon',
     N'A hard half marathon through the hills of Pietermaritzburg. Water tables every 3km.',
-    '2026-11-08 05:30:00', N'Pietermaritzburg', N'KwaZulu-Natal', N'Running', -29.601100, 30.379400),
+    '2026-11-08 05:30:00', N'Pietermaritzburg', N'KwaZulu-Natal', N'Running', 21.10, -29.601100, 30.379400),
 
 (2, N'Cape Winelands Cycle Classic',
     N'A cycling event through the wine farms of Paarl. Helmets are compulsory for all riders.',
-    '2026-12-06 07:00:00', N'Paarl', N'Western Cape', N'Cycling', -33.731700, 18.962100);
+    '2026-12-06 07:00:00', N'Paarl', N'Western Cape', N'Cycling', 50.00, -33.731700, 18.962100);
 GO
 
 INSERT INTO Categories (eventID, name, distanceKM, entryFee, maxParticipants, startTime) VALUES
@@ -142,12 +148,12 @@ INSERT INTO Categories (eventID, name, distanceKM, entryFee, maxParticipants, st
 (3, N'25km Cycle',           25.00, 200.00,  900, '07:30');
 GO
 
-INSERT INTO Enrolments (categoryID, participantID, raceNumber, status) VALUES
-(1, 3, N'D1001', N'Confirmed'),
-(2, 4, N'D1002', N'Confirmed'),
-(1, 5, N'D1003', N'Confirmed'),
-(3, 3, N'P2001', N'Confirmed'),
-(6, 4, N'C3001', N'Confirmed');
+INSERT INTO Enrolments (eventID, categoryID, participantID, raceNumber, status) VALUES
+(1, 1, 3, N'D1001', N'Confirmed'),
+(1, 2, 4, N'D1002', N'Confirmed'),
+(1, 1, 5, N'D1003', N'Confirmed'),
+(2, 3, 3, N'P2001', N'Confirmed'),
+(3, 6, 4, N'C3001', N'Confirmed');
 GO
 
 INSERT INTO Results (enrolmentID, finishTime, positionOverall, status) VALUES
@@ -176,8 +182,14 @@ SELECT
     r.positionOverall
 FROM Enrolments en
 INNER JOIN Users u ON u.userID = en.participantID
+INNER JOIN Events e ON e.eventID = en.eventID
 INNER JOIN Categories c ON c.categoryID = en.categoryID
-INNER JOIN Events e ON e.eventID = c.eventID
 LEFT JOIN Results r ON r.enrolmentID = en.enrolmentID
 ORDER BY e.eventDate, c.name, r.positionOverall;
+GO
+
+SELECT en.enrolmentID, en.eventID AS EnrolmentEventID, c.eventID AS CategoryEventID
+FROM Enrolments en
+INNER JOIN Categories c ON c.categoryID = en.categoryID
+WHERE c.eventID <> en.eventID;
 GO

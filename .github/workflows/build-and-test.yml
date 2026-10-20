@@ -1,0 +1,48 @@
+name: Build and Test API
+
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Check that the Part 2 folders exist
+        run: |
+          if [ ! -f "RaceDay/RaceDay.sln" ]; then
+            echo "FAILED: RaceDay/RaceDay.sln is missing."
+            exit 1
+          fi
+          if [ ! -d "RaceDay/RaceDay.Api" ]; then
+            echo "FAILED: the RaceDay/RaceDay.Api folder is missing."
+            exit 1
+          fi
+          if [ ! -d "RaceDay/RaceDay.Api.Tests" ]; then
+            echo "FAILED: the RaceDay/RaceDay.Api.Tests folder is missing."
+            exit 1
+          fi
+          echo "PASSED: the solution, the API and the tests were found."
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore the packages
+        run: dotnet restore RaceDay/RaceDay.sln
+
+      - name: Build the solution
+        run: dotnet build RaceDay/RaceDay.sln --no-restore --configuration Release
+
+      - name: Run the unit tests
+        run: dotnet test RaceDay/RaceDay.sln --no-build --configuration Release --verbosity normal
+
+      - name: All checks done
+        run: echo "The API built and all the unit tests passed."
